@@ -1,0 +1,229 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Heart of Stars</title>
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Pacifico', cursive;
+    }
+    body {
+      overflow: hidden;
+      background: radial-gradient(ellipse at center, #1a0033 0%, #000011 50%, #000000 100%);
+      height: 100vh;
+      cursor: crosshair;
+    }
+    #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+    .cosmic-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background:
+        radial-gradient(circle at 20% 30%, rgba(138, 43, 226, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(75, 0, 130, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 40% 70%, rgba(25, 25, 112, 0.3) 0%, transparent 50%);
+      z-index: 0;
+    }
+    .message {
+      position: absolute;
+      top: 5%;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+      text-align: center;
+      color: #fff;
+      font-size: clamp(16px, 3vw, 24px);
+      text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+      opacity: 0;
+      animation: fadeInMessage 1s ease-in-out 1s forwards;
+    }
+    .subtitle {
+      font-size: clamp(12px, 2vw, 16px);
+      margin-top: 10px;
+      color: #bbb;
+      font-style: italic;
+    }
+    @keyframes fadeInMessage {
+      0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+      100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="cosmic-bg"></div>
+  <canvas id="canvas"></canvas>
+  <div class="message">
+    <div>Thaw thar oo</div>
+    <div class="subtitle">Thr tharoo</div>
+  </div>
+  <audio id="bg-music" loop>
+    <source src="./style/Beneath the Rain.mp3" type="audio/mpeg">
+  </audio>
+  <script>
+    const music = document.getElementById("bg-music");
+    const playMusicOnce = () => {
+      music.play().catch(e => console.log("Music play blocked:", e));
+      window.removeEventListener("click", playMusicOnce);
+    };
+    window.addEventListener("click", playMusicOnce);const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let width = canvas.width = window.innerWidth;
+let height = canvas.height = window.innerHeight;
+
+const stars = [], heartStars = [], meteors = [], fallingTexts = [];
+let mouseX = width / 2, mouseY = height / 2, heartBeat = 1;
+let heartScale = Math.min(width, height) * 0.015;
+
+const messages = [
+  "Em là vũ trụ của anh",
+  "Tình yêu bất tận giữa các vì sao",
+  "Em là ngôi sao sáng nhất",
+  "Anh tỏa sáng là vì em",
+  "Em thật tỏa sáng trên bầu trời của anh"
+];
+
+function heartShape(t, scale = 1) {
+  const x = 16 * Math.pow(Math.sin(t), 3);
+  const y = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+  return { x: x * scale, y: y * scale };
+}
+
+function createFallingText() {
+  const text = messages[Math.floor(Math.random() * messages.length)];
+  const fontSize = Math.random() * 10 + 10;
+  ctx.font = `bold ${fontSize}px Pacifico`;
+  const textWidth = ctx.measureText(text).width;
+  const x = Math.random() * (width - textWidth); 
+  fallingTexts.push({ text, x, y: -10, speed: Math.random() * 2 + 2, alpha: 1, fontSize, hue: Math.random() * 360 });
+}
+
+function createHeartStars(count = 1600) {
+  const centerX = width / 2, centerY = height / 2 + 20;
+  for (let i = 0; i < count; i++) {
+    const t = (i / count) * Math.PI * 2;
+    const heart = heartShape(t, heartScale);
+    const offsetX = (Math.random() - 0.5) * 15, offsetY = (Math.random() - 0.5) * 15;
+    const targetX = centerX + heart.x + offsetX;
+    const targetY = centerY + heart.y + offsetY;
+    heartStars.push({ x: Math.random() * width, y: Math.random() * height, targetX, targetY, originalX: targetX, originalY: targetY, size: Math.random() * 3 + 1, twinkle: Math.random() * Math.PI * 2, twinkleSpeed: Math.random() * 0.02 + 0.01, brightness: Math.random() * 0.5 + 0.5, hue: Math.random() * 60 + 300, mode: 'flying' });
+  }
+}
+
+function createBackgroundStars() {
+  for (let i = 0; i < 200; i++) {
+    stars.push({ x: Math.random() * width, y: Math.random() * height, size: Math.random() * 2 + 0.5, twinkle: Math.random() * Math.PI * 2, twinkleSpeed: Math.random() * 0.01 + 0.005, brightness: Math.random() * 0.3 + 0.2 });
+  }
+}
+
+function createMeteor() {
+  meteors.push({ x: Math.random() * width, y: -50, length: Math.random() * 80 + 50, speed: Math.random() * 6 + 6, angle: Math.PI / 4 + (Math.random() - 0.5) * 0.2, alpha: 1 });
+}
+
+function animate() {
+  ctx.clearRect(0, 0, width, height);
+  heartBeat += 0.1;
+  stars.forEach(star => {
+    star.twinkle += star.twinkleSpeed;
+    const flicker = Math.random() < 0.005 ? 1 : 0;
+    const opacity = Math.min(1, star.brightness * (0.4 + 0.6 * Math.sin(star.twinkle)) + flicker);
+    ctx.save(); ctx.globalAlpha = opacity; ctx.fillStyle = '#ffffff';
+    ctx.shadowBlur = flicker ? 20 : 0; ctx.shadowColor = flicker ? '#fff' : 'transparent';
+    ctx.beginPath(); ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  });
+
+  meteors.forEach((m, i) => {
+    const dx = Math.cos(m.angle) * m.length, dy = Math.sin(m.angle) * m.length;
+    ctx.save(); ctx.globalAlpha = m.alpha;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x - dx, m.y - dy);
+    ctx.stroke(); ctx.restore(); m.x += Math.cos(m.angle) * m.speed;
+    m.y += Math.sin(m.angle) * m.speed; m.alpha -= 0.005;
+    if (m.alpha <= 0) meteors.splice(i, 1);
+  });
+
+  fallingTexts.forEach((t, i) => {
+    ctx.save(); ctx.font = `bold ${t.fontSize}px Pacifico`;
+    ctx.fillStyle = `hsla(${t.hue}, 100%, 85%, ${t.alpha})`;
+    ctx.shadowBlur = 5; ctx.shadowColor = `hsla(${t.hue}, 100%, 70%, ${t.alpha})`;
+    ctx.fillText(t.text, t.x, t.y); ctx.restore();
+    t.y += t.speed; t.alpha -= 0.002;
+    if (t.y > height + 30 || t.alpha <= 0) fallingTexts.splice(i, 1);
+  });
+
+  heartStars.forEach((star, i) => {
+    star.twinkle += star.twinkleSpeed;
+    const centerX = width / 2, centerY = height / 2 + 20;
+    if (star.mode === 'flying') {
+      const dx = star.targetX - star.x, dy = star.targetY - star.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > 1) { star.x += dx * 0.07; star.y += dy * 0.07; } else star.mode = 'heart';
+    } else {
+      const dx = star.originalX - centerX, dy = star.originalY - centerY;
+      const beatScale = 1 + Math.sin(heartBeat) * 0.05;
+      star.x = centerX + dx * beatScale; star.y = centerY + dy * beatScale;
+      const distMouse = Math.hypot(mouseX - star.x, mouseY - star.y);
+      if (distMouse < 100) {
+        const force = (100 - distMouse) / 100, angle = Math.atan2(star.y - mouseY, star.x - mouseX);
+        star.x += Math.cos(angle) * force * 10; star.y += Math.sin(angle) * force * 10;
+      }
+    }
+    ctx.save(); ctx.globalAlpha = star.brightness * (0.3 + 0.7 * Math.sin(star.twinkle));
+    ctx.fillStyle = `hsl(${star.hue}, 70%, 80%)`;
+    ctx.shadowBlur = 10; ctx.shadowColor = `hsl(${star.hue}, 70%, 60%)`;
+    ctx.beginPath(); ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  });
+
+  requestAnimationFrame(animate);
+}
+
+canvas.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+
+canvas.addEventListener('click', e => {
+  const centerX = width / 2, centerY = height / 2 + 20;
+  heartScale *= 1.015;
+  heartStars.forEach((star, i) => {
+    if (star.mode === 'heart') {
+      const t = (i / heartStars.length) * Math.PI * 2;
+      const heart = heartShape(t, heartScale);
+      const offsetX = (Math.random() - 0.5) * 15;
+      const offsetY = (Math.random() - 0.5) * 15;
+      star.originalX = centerX + heart.x + offsetX;
+      star.originalY = centerY + heart.y + offsetY;
+    }
+  });
+  for (let i = 0; i < 10; i++) {
+    const t = Math.random() * Math.PI * 2;
+    const heart = heartShape(t, heartScale);
+    const targetX = centerX + heart.x;
+    const targetY = centerY + heart.y;
+    heartStars.push({ x: e.clientX + (Math.random() - 0.5) * 50, y: e.clientY + (Math.random() - 0.5) * 50, targetX, targetY, originalX: targetX, originalY: targetY, size: Math.random() * 3 + 2, twinkle: Math.random() * Math.PI * 2, twinkleSpeed: Math.random() * 0.03 + 0.02, brightness: Math.random() * 0.8 + 0.6, hue: Math.random() * 60 + 300, mode: 'flying' });
+  }
+});
+
+window.addEventListener('resize', () => {
+  width = canvas.width = window.innerWidth;
+  height = canvas.height = window.innerHeight;
+  heartScale = Math.min(width, height) * 0.015;
+  heartStars.length = 0; stars.length = 0;
+  createHeartStars(); createBackgroundStars();
+});
+
+setInterval(() => { if (Math.random() < 0.8) createFallingText(); }, 2000);
+setInterval(() => { if (Math.random() < 0.7) createMeteor(); }, 3000);
+createHeartStars(); createBackgroundStars(); animate();
+
+  </script>
+</body>
+</html>
