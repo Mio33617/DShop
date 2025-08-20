@@ -7,6 +7,7 @@ function myfunction() {
     if (myname.value === "" || add.value === "") {
         alert("From is empty.");
     } else {
+       alert("Order placed successfully.");
         window.location.href = "./index.html"; 
     }
 }
